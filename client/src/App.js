@@ -32,7 +32,9 @@ function App() {
             <Navbar />
             <Wrapper> 
               <Routes>
-                <Route index element={<Home/>}></Route>
+                <Route index element={<Home type="random"/>}></Route>
+                <Route path="trends" index element={<Home type="trend"/>}></Route>
+                <Route path="subscriptions" index element={<Home type="sub"/>}></Route>
                 <Route path="signin" element={<SignIn/>}></Route>
                 {/* this will translate to /video/:id */}
                 <Route path="video"> 
