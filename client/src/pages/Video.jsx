@@ -1,11 +1,20 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
 import ThumbDownOffAltOutlinedIcon from "@mui/icons-material/ThumbDownOffAltOutlined";
 import ReplyOutlinedIcon from "@mui/icons-material/ReplyOutlined";
 import AddTaskOutlinedIcon from "@mui/icons-material/AddTaskOutlined";
+import ThumbDownIcon from "@mui/icons-material/ThumbDown";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import Comments from '../components/Comments';
 import Card from '../components/Card';
+import { useDispatch, useSelector } from "react-redux";
+import { useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { fetchStart, fetchSuccess, fetchFailure, like, dislike } from '../redux/videoSlice';
+import { subscription } from '../redux/userSlice';
+import { format } from 'timeago.js';
+
 
 const Container = styled.div`
   display: flex;
@@ -108,22 +117,77 @@ const Subscribe = styled.button`
   cursor: pointer;
 `;
 
+const VideoFrame = styled.video`
+  max-height: 720px;
+  width: 100%,
+  object-fit: cover;
+`
+
 const Video = () => {
+  const { user } = useSelector((state) => state.user);
+  const { currentVideo } = useSelector((state) => state.video);
+  const dispatch = useDispatch();
+
+  const path = useLocation().pathname.split("/")[2]; // extracting id from the current url /api/videos/:id
+
+  const [channel, setChannel] = useState({})
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const videoRes = await axios.get(`/videos/find/${path}`);
+        const ChannelRes = await axios.get(`/users/find/${videoRes.data.userId}`);
+ 
+        setChannel(ChannelRes.data);
+        dispatch(fetchSuccess(videoRes.data));
+      } catch (error) {
+
+      }
+    }
+    fetchData();
+  }, [path, dispatch]) // page updates everytime dispatch is used
+
+  const handleLike = async () => {
+    await axios.put(`/users/like/${currentVideo._id}`);
+    dispatch(like(user._id));
+  }
+
+  const handleDislike = async () => {
+    await axios.put(`/users/dislike/${currentVideo._id}`);
+    dispatch(dislike(user._id));
+  }
+
+  const handleSub = async () => {
+    user.subscribedUsers.includes(channel._id)
+      ? await axios.put(`/users/unsubscribe/${channel._id}`)
+      : await axios.put(`/users/subscribe/${channel._id}`);
+    dispatch(subscription(channel._id));
+  };
   return (
     <Container>
       <Content>
         <VideoWrapper>
-        <iframe width="100%" height="720" src="https://www.youtube.com/embed/giXco2jaZ_4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          <VideoFrame src={currentVideo.videoUrl} />
         </VideoWrapper>
-        <Title>Test Video</Title>
+        <Title>{currentVideo.title}</Title>
         <Details>
-          <Info>7,948,154 views • Jun 22, 2022</Info>
+          <Info>{currentVideo.views} • {format(currentVideo.createdAt)}</Info>
           <Buttons>
-            <Button>
-              <ThumbUpOutlinedIcon /> 123
+          <Button onClick={handleLike}>
+              {currentVideo.likes?.includes(user?._id) ? ( 
+                <ThumbUpIcon /> // show if user id isn't in the video likes array
+              ) : (
+                <ThumbUpOutlinedIcon />
+              )}{" "}
+              {currentVideo.likes?.length}
             </Button>
-            <Button>
-              <ThumbDownOffAltOutlinedIcon /> Dislike
+            <Button onClick={handleDislike}>
+              {currentVideo.dislikes?.includes(user?._id) ? (
+                <ThumbDownIcon />
+              ) : (
+                <ThumbDownOffAltOutlinedIcon />
+              )}{" "}
+              Dislike
             </Button>
             <Button>
               <ReplyOutlinedIcon /> Share
@@ -136,31 +200,22 @@ const Video = () => {
         <Hr />
         <Channel>
           <ChannelInfo>
-            <Image src="https://cdn.logojoy.com/wp-content/uploads/20200402150533/PewDiePielogo.png" />
+            <Image src={channel.img} />
             <ChannelDetail>
-              <ChannelName>Art Dev</ChannelName>
-              <ChannelCounter>200K subscribers</ChannelCounter>
-              <Description>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Voluptatem architecto voluptatibus odio sit dolores ex distinctio a deserunt nesciunt, repellat ipsum suscipit inventore earum cum sunt iste non ducimus adipisci.</Description>
+              <ChannelName>{channel.name}</ChannelName>
+              <ChannelCounter>{channel.subscribers} subscribers</ChannelCounter>
+              <Description>{currentVideo.desc}</Description>
             </ChannelDetail>
           </ChannelInfo>
-          <Subscribe>Subscribe</Subscribe>
+          <Subscribe onClick={handleSub}>
+            {user.subscribedUsers?.includes(channel._id)
+              ? "SUBSCRIBED"
+              : "SUBSCRIBE"}
+          </Subscribe>
         </Channel>
         <Hr />
-        <Comments />
+        <Comments  videoId={currentVideo._id}/>
       </Content>
-      <Recommendation>
-        <Card type="sm" />
-        <Card type="sm" />
-        <Card type="sm" />
-        <Card type="sm" />
-        <Card type="sm" />
-        <Card type="sm" />
-        <Card type="sm" />
-        <Card type="sm" />
-        <Card type="sm" />
-        <Card type="sm" />
-        <Card type="sm" />
-      </Recommendation>
     </Container>
   )
 }
