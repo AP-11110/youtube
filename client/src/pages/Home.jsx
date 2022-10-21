@@ -23,7 +23,7 @@ const Home = ({type}) => { // type prop passed down from routes
   return (
     <Container>
       {videos.map((video) => (
-        <Card />
+        <Card key={video._id} video={video}/> // passing video into the card component
       ))}
     </Container>
   )

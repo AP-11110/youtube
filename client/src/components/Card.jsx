@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
+import { format } from "timeago.js";
+import axios from "axios";
 
 const Container = styled.div`
   width: ${(props) => props.type !== "sm" && "360px"};
@@ -55,17 +57,27 @@ const Info = styled.div`
 
 
 // getting type props from video.jsx in order to pass it to Container styled component for conditional styling
-const Card = ({ type }) => {
+const Card = ({ type, video }) => {
+
+  const [channel, setChannel] = useState({});
+  useEffect(() => {
+    const fetchChannel = async () => { 
+      const res = await axios.get(`/users/find/${video.userId}`);
+      setChannel(res.data);
+    }
+    fetchChannel();
+  }, [video.userId]) // will run only once
+
   return (
     <Link to="/video/test" style={{ textDecoration: "none" }}>
       <Container type={type}>
-        <Image type={type} src="https://d1gikeh9vp02a9.cloudfront.net/publisher_image/pub967913918.png"/>
+        <Image type={type} src={video.imgUrl}/>
         <Details type={type}>
-          <ChannelImage type={type} src="https://cdn.logojoy.com/wp-content/uploads/20200402150533/PewDiePielogo.png"/>
+          <ChannelImage type={type} src={channel.img} />
           <Texts>
-            <Title>Test Video</Title>
-            <ChannelName>Art Dev</ChannelName>
-            <Info>1,000,000 views • 1 day ago</Info>
+            <Title>{video.title}</Title>
+            <ChannelName>{channel.name}</ChannelName>
+            <Info>{video.views} views • {format(video.createdAt)}</Info>
           </Texts>
         </Details>
       </Container>
